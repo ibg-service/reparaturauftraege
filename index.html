@@ -1048,8 +1048,11 @@
             generatePDF(data);
         }
         
-        function showOrdersList() {
-            loadOrdersList();
+        async function showOrdersList() {
+            // Erst Daten laden
+            await loadOrdersList();
+            
+            // Dann Ansicht wechseln (NACH dem Laden)
             document.getElementById('main-container').style.display = 'none';
             document.getElementById('orders-container').style.display = 'block';
         }
@@ -1469,16 +1472,23 @@
             }
             
             // Arbeitsaufgaben-Checkboxen aktualisieren
+            // WICHTIG: Erst updateDynamicCheckboxes() aufrufen, damit die Checkboxen erstellt werden
             updateDynamicCheckboxes();
-            if (order.workTasks) {
-                order.workTasks.forEach((t, i) => {
-                    const cb = document.getElementById(`task-${i}`);
-                    if (cb) {
-                        cb.checked = t.completed;
-                        if (t.completed) cb.closest('.task-checkbox-item').classList.add('completed');
-                    }
-                });
-            }
+            
+            // Dann mit setTimeout sicherstellen, dass DOM aktualisiert ist
+            setTimeout(() => {
+                if (order.workTasks) {
+                    order.workTasks.forEach((t, i) => {
+                        const cb = document.getElementById(`task-${i}`);
+                        if (cb) {
+                            cb.checked = t.completed;
+                            if (t.completed) {
+                                cb.closest('.task-checkbox-item').classList.add('completed');
+                            }
+                        }
+                    });
+                }
+            }, 50); // Kleine Verzögerung, damit DOM aktualisiert ist
             
             // Ersatzteile befüllen
             const tbody = document.getElementById('table-body');
@@ -1573,86 +1583,150 @@
             
             // SEITE 1: Auftragsstammdaten, Fehlerbeschreibung, Arbeitsaufgaben (OHNE workTodo Textbox!)
             const page1Content = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; font-size: 12px;">
-                    <h1 style="color: #005293; font-size: 20px; margin-bottom: 10px;">IBG HYDROTECH - REPARATURPROTOKOLL</h1>
-                    <hr style="border: 1px solid #e37222; margin-bottom: 15px;">
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; font-size: 11px; background: #ffffff;">
+                    <!-- HEADER -->
+                    <div style="background: linear-gradient(to right, #005293, #007bc0); color: white; padding: 25px; margin: -30px -30px 25px -30px; border-radius: 0;">
+                        <div style="display: flex; align-items: center; justify-content: center;">
+                            <div style="text-align: center;">
+                                <h1 style="font-size: 28px; margin: 0 0 8px 0; font-weight: 700;">IBG HYDROTECH</h1>
+                                <p style="font-size: 16px; margin: 0; opacity: 0.95;">Reparaturprotokoll - Fräsroboter-Service</p>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <h2 style="color: #005293; font-size: 16px; margin-top: 15px; margin-bottom: 10px;">Auftragsstammdaten</h2>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
-                        <tr>
-                            <td style="padding: 5px; width: 30%;"><strong>Vorgang:</strong></td>
-                            <td style="padding: 5px;">${orderData.vorgang || '-'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px;"><strong>Kunde:</strong></td>
-                            <td style="padding: 5px;">${orderData.customer || '-'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px;"><strong>Eingangsdatum:</strong></td>
-                            <td style="padding: 5px;">${orderData.entryDate || '-'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px;"><strong>Betrifft:</strong></td>
-                            <td style="padding: 5px;">${orderData.subject || '-'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px;"><strong>Seriennummer:</strong></td>
-                            <td style="padding: 5px;">${orderData.serialNumber || '-'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px;"><strong>Bearbeiter:</strong></td>
-                            <td style="padding: 5px;">${orderData.name || '-'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px;"><strong>Stunden:</strong></td>
-                            <td style="padding: 5px;">${orderData.hours || 0}</td>
-                        </tr>
-                    </table>
+                    <!-- AUFTRAGSSTAMMDATEN -->
+                    <div style="margin-bottom: 25px;">
+                        <h2 style="color: #005293; font-size: 18px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 3px solid #e37222; font-weight: 700;">
+                            📋 Auftragsstammdaten
+                        </h2>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background: #f5f5f5; border-radius: 8px;">
+                            <tr style="border-bottom: 1px solid #e0e0e0;">
+                                <td style="padding: 10px 15px; width: 35%; font-weight: bold; color: #005293;">Vorgang:</td>
+                                <td style="padding: 10px 15px; color: #333;">${orderData.vorgang || '-'}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e0e0e0; background: white;">
+                                <td style="padding: 10px 15px; font-weight: bold; color: #005293;">Kunde:</td>
+                                <td style="padding: 10px 15px; color: #333;">${orderData.customer || '-'}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e0e0e0;">
+                                <td style="padding: 10px 15px; font-weight: bold; color: #005293;">Eingangsdatum:</td>
+                                <td style="padding: 10px 15px; color: #333;">${orderData.entryDate || '-'}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e0e0e0; background: white;">
+                                <td style="padding: 10px 15px; font-weight: bold; color: #005293;">Betrifft:</td>
+                                <td style="padding: 10px 15px; color: #333;">${orderData.subject || '-'}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e0e0e0;">
+                                <td style="padding: 10px 15px; font-weight: bold; color: #005293;">Seriennummer:</td>
+                                <td style="padding: 10px 15px; color: #333;">${orderData.serialNumber || '-'}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e0e0e0; background: white;">
+                                <td style="padding: 10px 15px; font-weight: bold; color: #005293;">Bearbeiter:</td>
+                                <td style="padding: 10px 15px; color: #333;">${orderData.name || '-'}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 15px; font-weight: bold; color: #005293;">Stunden:</td>
+                                <td style="padding: 10px 15px; color: #333;">${orderData.hours || 0}</td>
+                            </tr>
+                        </table>
+                    </div>
                     
-                    <h3 style="color: #005293; font-size: 14px; margin-top: 15px; margin-bottom: 8px;">Mitgeliefertes Zubehör</h3>
-                    <p style="margin: 5px 0;">
-                        ${checkMark(orderData.accessories?.hintereKamera)} Hintere Kamera &nbsp;&nbsp;
-                        ${checkMark(orderData.accessories?.drehkamera)} Drehkamera &nbsp;&nbsp;
-                        ${checkMark(orderData.accessories?.steuerkoffer)} Steuerkoffer
-                    </p>
-                    ${orderData.accessories?.sonstiges ? `<p style="margin: 5px 0;"><strong>Sonstiges:</strong> ${orderData.accessories.sonstiges}</p>` : ''}
+                    <!-- ZUBEHÖR -->
+                    <div style="background: #f0f2f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #e37222;">
+                        <h3 style="color: #005293; font-size: 14px; margin: 0 0 10px 0; font-weight: 700;">📦 Mitgeliefertes Zubehör</h3>
+                        <p style="margin: 5px 0; color: #333; line-height: 1.8;">
+                            <span style="background: ${orderData.accessories?.hintereKamera ? '#d4edda' : '#f8f9fa'}; padding: 4px 10px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 5px;">
+                                ${checkMark(orderData.accessories?.hintereKamera)} Hintere Kamera
+                            </span>
+                            <span style="background: ${orderData.accessories?.drehkamera ? '#d4edda' : '#f8f9fa'}; padding: 4px 10px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 5px;">
+                                ${checkMark(orderData.accessories?.drehkamera)} Drehkamera
+                            </span>
+                            <span style="background: ${orderData.accessories?.steuerkoffer ? '#d4edda' : '#f8f9fa'}; padding: 4px 10px; border-radius: 4px; display: inline-block; margin-bottom: 5px;">
+                                ${checkMark(orderData.accessories?.steuerkoffer)} Steuerkoffer
+                            </span>
+                        </p>
+                        ${orderData.accessories?.sonstiges ? `<p style="margin: 10px 0 0 0; color: #333;"><strong>Sonstiges:</strong> ${orderData.accessories.sonstiges}</p>` : ''}
+                    </div>
                     
-                    <h2 style="color: #005293; font-size: 16px; margin-top: 15px; margin-bottom: 10px;">Fehleranalyse</h2>
+                    <!-- FEHLERANALYSE -->
+                    <div style="margin-bottom: 25px;">
+                        <h2 style="color: #005293; font-size: 18px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 3px solid #e37222; font-weight: 700;">
+                            ⚠️ Fehleranalyse
+                        </h2>
+                        
+                        <h3 style="color: #005293; font-size: 14px; margin-bottom: 10px; font-weight: 700;">✓ Funktionsüberprüfung bei Annahme</h3>
+                        <div style="background: #f0f2f5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <p style="margin: 5px 0; color: #333; line-height: 2;">
+                                <span style="background: ${orderData.functionTests?.fahren ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.fahren)} Fahren
+                                </span>
+                                <span style="background: ${orderData.functionTests?.heben ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.heben)} Heben
+                                </span>
+                                <span style="background: ${orderData.functionTests?.drehen ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.drehen)} Drehen
+                                </span>
+                                <span style="background: ${orderData.functionTests?.fraeskopfSchwenken ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.fraeskopfSchwenken)} Fräskopf schwenken
+                                </span>
+                                <span style="background: ${orderData.functionTests?.fraesen ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.fraesen)} Fräsen
+                                </span>
+                                <span style="background: ${orderData.functionTests?.spuelen ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.spuelen)} Spülen
+                                </span>
+                            </p>
+                        </div>
+                        
+                        ${(orderData.functionTests?.bildHintere || orderData.functionTests?.ledHintere || 
+                           orderData.functionTests?.bildDreh || orderData.functionTests?.ledDreh || 
+                           orderData.functionTests?.kameraUmschalten) ? `
+                        <h4 style="color: #005293; font-size: 12px; margin: 15px 0 10px 0; font-weight: 700;">📹 Kamera-Funktionen</h4>
+                        <div style="background: #f0f2f5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <p style="margin: 5px 0; color: #333; line-height: 2;">
+                                <span style="background: ${orderData.functionTests?.bildHintere ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.bildHintere)} Bild hintere Kamera
+                                </span>
+                                <span style="background: ${orderData.functionTests?.ledHintere ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.ledHintere)} LED hintere Kamera
+                                </span>
+                                <span style="background: ${orderData.functionTests?.bildDreh ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.bildDreh)} Bild Drehkamera
+                                </span>
+                                <span style="background: ${orderData.functionTests?.ledDreh ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.ledDreh)} LED Drehkamera
+                                </span>
+                                <span style="background: ${orderData.functionTests?.kameraUmschalten ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                    ${checkMark(orderData.functionTests?.kameraUmschalten)} Kamerabild umschalten
+                                </span>
+                            </p>
+                        </div>` : ''}
+                        
+                        <h3 style="color: #005293; font-size: 14px; margin: 15px 0 10px 0; font-weight: 700;">📝 Fehlerbeschreibung</h3>
+                        <div style="border: 2px solid #e37222; padding: 15px; background: #fffbf5; border-radius: 8px; margin-bottom: 15px;">
+                            <p style="margin: 0; color: #333; line-height: 1.6; white-space: pre-wrap;">${orderData.errorDescription || '-'}</p>
+                        </div>
+                    </div>
                     
-                    <h3 style="color: #005293; font-size: 14px; margin-top: 10px; margin-bottom: 8px;">Funktionsüberprüfung bei Annahme</h3>
-                    <p style="margin: 5px 0;">
-                        ${checkMark(orderData.functionTests?.fahren)} Fahren &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.heben)} Heben &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.drehen)} Drehen &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.fraeskopfSchwenken)} Fräskopf schwenken (HC200) &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.fraesen)} Fräsen &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.spuelen)} Spülen
-                    </p>
-                    
-                    ${(orderData.functionTests?.bildHintere || orderData.functionTests?.ledHintere || 
-                       orderData.functionTests?.bildDreh || orderData.functionTests?.ledDreh || 
-                       orderData.functionTests?.kameraUmschalten) ? `
-                    <p style="margin: 10px 0 5px 0;"><strong>Kamera-Funktionen:</strong></p>
-                    <p style="margin: 5px 0;">
-                        ${checkMark(orderData.functionTests?.bildHintere)} Bild hintere Kamera &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.ledHintere)} LED hintere Kamera &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.bildDreh)} Bild Drehkamera &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.ledDreh)} LED Drehkamera &nbsp;&nbsp;
-                        ${checkMark(orderData.functionTests?.kameraUmschalten)} Kamerabild umschalten
-                    </p>` : ''}
-                    
-                    <h3 style="color: #005293; font-size: 14px; margin-top: 15px; margin-bottom: 8px;">Fehlerbeschreibung</h3>
-                    <p style="border: 1px solid #e0e0e0; padding: 10px; background: #f5f5f5; margin-bottom: 15px;">${orderData.errorDescription || '-'}</p>
-                    
-                    <h2 style="color: #005293; font-size: 16px; margin-top: 15px; margin-bottom: 10px;">Arbeitsaufgaben</h2>
-                    
-                    ${orderData.workTasks && orderData.workTasks.length > 0 ? `
-                    <h3 style="color: #005293; font-size: 14px; margin-top: 10px; margin-bottom: 8px;">Aufgaben-Checkliste</h3>
-                    <ul style="margin-left: 20px;">
-                        ${orderData.workTasks.map(task => `
-                            <li style="margin: 3px 0;">${checkMark(task.completed)} ${task.task}</li>
-                        `).join('')}
-                    </ul>` : '<p style="color: #666;">Keine Arbeitsaufgaben definiert.</p>'}
+                    <!-- ARBEITSAUFGABEN -->
+                    <div style="margin-bottom: 20px;">
+                        <h2 style="color: #005293; font-size: 18px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 3px solid #e37222; font-weight: 700;">
+                            🔧 Arbeitsaufgaben
+                        </h2>
+                        
+                        ${orderData.workTasks && orderData.workTasks.length > 0 ? `
+                        <div style="background: #f0f2f5; padding: 15px; border-radius: 8px; border-left: 4px solid #007bc0;">
+                            <ul style="margin: 0; padding-left: 25px; color: #333; line-height: 2;">
+                                ${orderData.workTasks.map(task => `
+                                    <li style="margin: 8px 0; ${task.completed ? 'text-decoration: line-through; color: #28a745; font-weight: 600;' : ''}">
+                                        <span style="background: ${task.completed ? '#d4edda' : '#ffffff'}; padding: 4px 10px; border-radius: 4px; display: inline-block; border: 1px solid ${task.completed ? '#28a745' : '#e0e0e0'};">
+                                            ${checkMark(task.completed)} ${task.task}
+                                        </span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>` : '<p style="color: #666; font-style: italic; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">Keine Arbeitsaufgaben definiert.</p>'}
+                    </div>
                 </div>
             `;
             
@@ -1676,60 +1750,94 @@
                 doc.addPage();
                 
                 const page2Content = `
-                    <div style="font-family: Arial, sans-serif; padding: 20px; font-size: 12px;">
-                        <h1 style="color: #005293; font-size: 20px; margin-bottom: 10px;">IBG HYDROTECH - REPARATURPROTOKOLL</h1>
-                        <p style="margin-bottom: 15px;"><strong>Vorgang:</strong> ${orderData.vorgang || '-'}</p>
-                        <hr style="border: 1px solid #e37222; margin-bottom: 15px;">
+                    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; font-size: 11px; background: #ffffff;">
+                        <!-- HEADER -->
+                        <div style="background: linear-gradient(to right, #005293, #007bc0); color: white; padding: 25px; margin: -30px -30px 25px -30px; border-radius: 0;">
+                            <div style="display: flex; align-items: center; justify-content: center;">
+                                <div style="text-align: center;">
+                                    <h1 style="font-size: 28px; margin: 0 0 8px 0; font-weight: 700;">IBG HYDROTECH</h1>
+                                    <p style="font-size: 16px; margin: 0; opacity: 0.95;">Reparaturprotokoll - Fräsroboter-Service</p>
+                                </div>
+                            </div>
+                        </div>
                         
-                        <h2 style="color: #005293; font-size: 16px; margin-bottom: 10px;">Benötigte Ersatzteile</h2>
-                        ${orderData.parts && orderData.parts.length > 0 ? `
-                        <table style="width: 100%; border-collapse: collapse; border: 1px solid #e0e0e0;">
-                            <thead>
-                                <tr style="background: linear-gradient(to right, #005293, #007bc0); color: white;">
-                                    <th style="padding: 10px; text-align: left; border: 1px solid #e0e0e0;">Artikelnummer</th>
-                                    <th style="padding: 10px; text-align: left; border: 1px solid #e0e0e0;">Beschreibung</th>
-                                    <th style="padding: 10px; text-align: left; border: 1px solid #e0e0e0;">Menge</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${orderData.parts.map((part, index) => `
-                                    <tr style="background: ${index % 2 === 0 ? '#ffffff' : '#f5f5f5'};">
-                                        <td style="padding: 8px; border: 1px solid #e0e0e0;">${part.articleNumber || '-'}</td>
-                                        <td style="padding: 8px; border: 1px solid #e0e0e0;">${part.description || '-'}</td>
-                                        <td style="padding: 8px; border: 1px solid #e0e0e0;">${part.quantity || '-'}</td>
+                        <div style="background: #f0f2f5; padding: 12px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #e37222;">
+                            <p style="margin: 0; font-size: 13px;"><strong style="color: #005293;">Vorgang:</strong> <span style="color: #333;">${orderData.vorgang || '-'}</span></p>
+                        </div>
+                        
+                        <!-- ERSATZTEILE -->
+                        <div style="margin-bottom: 25px;">
+                            <h2 style="color: #005293; font-size: 18px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 3px solid #e37222; font-weight: 700;">
+                                ⚙️ Benötigte Ersatzteile
+                            </h2>
+                            ${orderData.parts && orderData.parts.length > 0 ? `
+                            <table style="width: 100%; border-collapse: collapse; border: 2px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                                <thead>
+                                    <tr style="background: linear-gradient(to right, #005293, #007bc0); color: white;">
+                                        <th style="padding: 12px; text-align: left; font-weight: 700;">Artikelnummer</th>
+                                        <th style="padding: 12px; text-align: left; font-weight: 700;">Beschreibung</th>
+                                        <th style="padding: 12px; text-align: left; font-weight: 700;">Menge</th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>` : `<p style="margin: 5px 0; color: #666;">Keine Ersatzteile erfasst.</p>`}
+                                </thead>
+                                <tbody>
+                                    ${orderData.parts.map((part, index) => `
+                                        <tr style="background: ${index % 2 === 0 ? '#ffffff' : '#f5f5f5'}; border-bottom: 1px solid #e0e0e0;">
+                                            <td style="padding: 10px 12px; color: #333;">${part.articleNumber || '-'}</td>
+                                            <td style="padding: 10px 12px; color: #333;">${part.description || '-'}</td>
+                                            <td style="padding: 10px 12px; color: #333; font-weight: 600;">${part.quantity || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>` : `<p style="margin: 5px 0; color: #666; font-style: italic; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">Keine Ersatzteile erfasst.</p>`}
+                        </div>
 
-                        <h2 style="color: #005293; font-size: 16px; margin-top: 18px; margin-bottom: 10px;">Abnahmeprotokoll vor Auslieferung</h2>
-                        <p style="margin: 5px 0;">
-                            ${checkMark(ap.dichtigkeitstest)} Dichtigkeitstest im Wasserbad durchgeführt<br>
-                            ${checkMark(ap.fahrenGetestet)} Fahren getestet<br>
-                            ${checkMark(ap.drehenGetestet)} Drehen getestet<br>
-                            ${checkMark(ap.hebenGetestet)} Heben getestet<br>
-                            ${checkMark(ap.fraesenReal)} Unter realen Bedingungen gefräst
-                        </p>
+                        <!-- ABNAHMEPROTOKOLL -->
+                        <div style="margin-bottom: 20px;">
+                            <h2 style="color: #005293; font-size: 18px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 3px solid #e37222; font-weight: 700;">
+                                ✅ Abnahmeprotokoll vor Auslieferung
+                            </h2>
+                            <div style="background: #f0f2f5; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+                                <p style="margin: 5px 0; color: #333; line-height: 2;">
+                                    <span style="background: ${ap.dichtigkeitstest ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                        ${checkMark(ap.dichtigkeitstest)} Dichtigkeitstest im Wasserbad
+                                    </span><br>
+                                    <span style="background: ${ap.fahrenGetestet ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                        ${checkMark(ap.fahrenGetestet)} Fahren getestet
+                                    </span><br>
+                                    <span style="background: ${ap.drehenGetestet ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                        ${checkMark(ap.drehenGetestet)} Drehen getestet
+                                    </span><br>
+                                    <span style="background: ${ap.hebenGetestet ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                        ${checkMark(ap.hebenGetestet)} Heben getestet
+                                    </span><br>
+                                    <span style="background: ${ap.fraesenReal ? '#d4edda' : '#ffffff'}; padding: 6px 12px; border-radius: 4px; display: inline-block; margin-bottom: 6px; border: 1px solid #e0e0e0;">
+                                        ${checkMark(ap.fraesenReal)} Unter realen Bedingungen gefräst
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
                         
                         ${ap.pruefdatum || ap.pruefer || ap.anmerkungen ? `
-                        <h3 style="color: #005293; font-size: 14px; margin-top: 15px; margin-bottom: 8px;">Prüfdetails</h3>
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                            ${ap.pruefdatum ? `
-                            <tr>
-                                <td style="padding: 5px; width: 30%;"><strong>Prüfdatum:</strong></td>
-                                <td style="padding: 5px;">${ap.pruefdatum}</td>
-                            </tr>` : ''}
-                            ${ap.pruefer ? `
-                            <tr>
-                                <td style="padding: 5px;"><strong>Prüfer:</strong></td>
-                                <td style="padding: 5px;">${ap.pruefer}</td>
-                            </tr>` : ''}
-                            ${ap.anmerkungen ? `
-                            <tr>
-                                <td style="padding: 5px;"><strong>Anmerkungen:</strong></td>
-                                <td style="padding: 5px;">${ap.anmerkungen}</td>
-                            </tr>` : ''}
-                        </table>` : ''}
+                        <div style="margin-top: 20px;">
+                            <h3 style="color: #005293; font-size: 14px; margin-bottom: 10px; font-weight: 700;">📋 Prüfdetails</h3>
+                            <table style="width: 100%; border-collapse: collapse; background: #f5f5f5; border-radius: 8px;">
+                                ${ap.pruefdatum ? `
+                                <tr style="border-bottom: 1px solid #e0e0e0;">
+                                    <td style="padding: 10px 15px; width: 30%; font-weight: bold; color: #005293;">Prüfdatum:</td>
+                                    <td style="padding: 10px 15px; color: #333;">${ap.pruefdatum}</td>
+                                </tr>` : ''}
+                                ${ap.pruefer ? `
+                                <tr style="border-bottom: 1px solid #e0e0e0; background: white;">
+                                    <td style="padding: 10px 15px; font-weight: bold; color: #005293;">Prüfer:</td>
+                                    <td style="padding: 10px 15px; color: #333;">${ap.pruefer}</td>
+                                </tr>` : ''}
+                                ${ap.anmerkungen ? `
+                                <tr>
+                                    <td style="padding: 10px 15px; font-weight: bold; color: #005293; vertical-align: top;">Anmerkungen:</td>
+                                    <td style="padding: 10px 15px; color: #333;">${ap.anmerkungen}</td>
+                                </tr>` : ''}
+                            </table>
+                        </div>` : ''}
                     </div>
                 `;
                 
