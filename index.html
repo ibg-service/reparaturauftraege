@@ -1159,7 +1159,8 @@
                 return;
             }
             
-            showLoading();
+            // KEIN Loading-Spinner mehr!
+            // Buttons deaktivieren während Speichern
             document.getElementById('save-btn').disabled = true;
             document.getElementById('save-pdf-btn').disabled = true;
             
@@ -1197,7 +1198,7 @@
                 console.error('Fehler beim Speichern:', error);
                 showError('Konnte nicht zu Google Sheets speichern: ' + error.message);
             } finally {
-                hideLoading();
+                // Buttons wieder aktivieren
                 document.getElementById('save-btn').disabled = false;
                 document.getElementById('save-pdf-btn').disabled = false;
             }
@@ -1211,7 +1212,7 @@
                 return;
             }
             
-            showLoading();
+            // KEIN Loading-Spinner mehr!
             
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL, { 
@@ -1236,8 +1237,6 @@
                 showError('Konnte Daten nicht von Google Sheets laden: ' + error.message);
                 ordersDatabase = [];
                 applyFiltersAndRender();
-            } finally {
-                hideLoading();
             }
         }
 
@@ -1734,14 +1733,42 @@
             const temp1 = document.createElement('div');
             temp1.innerHTML = page1Content;
             temp1.style.width = '210mm';
+            temp1.style.position = 'absolute';
+            temp1.style.left = '-9999px';
             document.body.appendChild(temp1);
-            const canvas1 = await html2canvas(temp1, { scale: 2 });
+            
+            const canvas1 = await html2canvas(temp1, { 
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
             document.body.removeChild(temp1);
             
             const imgData1 = canvas1.toDataURL('image/png');
-            const imgWidth = 190;
-            const imgHeight = (canvas1.height * imgWidth) / canvas1.width;
-            doc.addImage(imgData1, 'PNG', 10, 10, imgWidth, imgHeight);
+            
+            // A4 Format: 210mm x 297mm
+            // Nutzbare Fläche mit Margins: 190mm x 277mm
+            const pageWidth = 190;
+            const pageHeight = 277;
+            
+            // Berechne die Bildgröße
+            const imgWidth = pageWidth;
+            let imgHeight = (canvas1.height * imgWidth) / canvas1.width;
+            
+            // WICHTIG: Skaliere das Bild, wenn es zu hoch ist
+            if (imgHeight > pageHeight) {
+                // Bild ist zu hoch → skaliere es runter, damit es auf die Seite passt
+                const scaleFactor = pageHeight / imgHeight;
+                imgHeight = pageHeight;
+                const scaledWidth = imgWidth * scaleFactor;
+                
+                // Zentriere das Bild horizontal
+                const xOffset = (pageWidth - scaledWidth) / 2 + 10;
+                doc.addImage(imgData1, 'PNG', xOffset, 10, scaledWidth, imgHeight);
+            } else {
+                // Bild passt → normale Zentrierung
+                doc.addImage(imgData1, 'PNG', 10, 10, imgWidth, imgHeight);
+            }
             
             // SEITE 2: Ersatzteile / Abnahmeprotokoll (mit Seitenumbruch)
             const ap = orderData.acceptanceProtocol || {};
@@ -1844,13 +1871,36 @@
                 const temp2 = document.createElement('div');
                 temp2.innerHTML = page2Content;
                 temp2.style.width = '210mm';
+                temp2.style.position = 'absolute';
+                temp2.style.left = '-9999px';
                 document.body.appendChild(temp2);
-                const canvas2 = await html2canvas(temp2, { scale: 2 });
+                
+                const canvas2 = await html2canvas(temp2, { 
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
                 document.body.removeChild(temp2);
                 
                 const imgData2 = canvas2.toDataURL('image/png');
-                const imgHeight2 = (canvas2.height * imgWidth) / canvas2.width;
-                doc.addImage(imgData2, 'PNG', 10, 10, imgWidth, imgHeight2);
+                
+                // A4 Format: 190mm x 277mm nutzbar
+                const pageWidth = 190;
+                const pageHeight = 277;
+                
+                const imgWidth = pageWidth;
+                let imgHeight2 = (canvas2.height * imgWidth) / canvas2.width;
+                
+                // Skaliere wenn nötig
+                if (imgHeight2 > pageHeight) {
+                    const scaleFactor = pageHeight / imgHeight2;
+                    imgHeight2 = pageHeight;
+                    const scaledWidth = imgWidth * scaleFactor;
+                    const xOffset = (pageWidth - scaledWidth) / 2 + 10;
+                    doc.addImage(imgData2, 'PNG', xOffset, 10, scaledWidth, imgHeight2);
+                } else {
+                    doc.addImage(imgData2, 'PNG', 10, 10, imgWidth, imgHeight2);
+                }
             }
             
             doc.save(`Reparatur_${orderData.vorgang}.pdf`);
